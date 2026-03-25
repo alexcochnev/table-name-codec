@@ -99,11 +99,11 @@ class TableRef:
     source_name: str
     table_id: str
     database: str
-    physical_name: str
+    table_name: str
 
     @property
-    def physical_full_name(self) -> str:
-        return f"{self.database}.{self.physical_name}"
+    def get_full_name(self) -> str:
+        return f"{self.database}.{self.table_name}"
 
 
 def load_table_refs(config_path: Path) -> list[TableRef]:
@@ -154,7 +154,7 @@ def load_table_refs(config_path: Path) -> list[TableRef]:
                     source_name=source_name,
                     table_id=table_id,
                     database=database,
-                    physical_name=physical_name,
+                    table_name=physical_name,
                 )
             )
 
@@ -253,7 +253,7 @@ def build_forward_map(refs: list[TableRef]) -> dict[tuple[str, str], str]:
 
     for ref in refs:
         key = (ref.source_name, ref.table_id)
-        value = ref.physical_full_name
+        value = ref.get_full_name
 
         if key in forward and forward[key] != value:
             duplicates.append(
@@ -284,7 +284,7 @@ def build_reverse_maps(
     grouped: dict[str, list[TableRef]] = defaultdict(list)
 
     for ref in refs:
-        grouped[ref.physical_full_name].append(ref)
+        grouped[ref.get_full_name].append(ref)
 
     unique_map: dict[str, TableRef] = {}
     ambiguous_map: dict[str, list[TableRef]] = {}
@@ -378,7 +378,7 @@ def encode_sql(
             if ref is None:
                 return raw
 
-            return "{{ source('%s', '%s') }}" % (ref.source_name, ref.table_id)
+            return f"{{{{ source('{ref.source_name}', '{ref.table_id}') }}}}"
 
         return IDENTIFIER_CHAIN_RE.sub(replace_identifier, chunk)
 
